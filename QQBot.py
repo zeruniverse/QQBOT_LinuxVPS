@@ -32,16 +32,16 @@ Referer = 'http://d.web2.qq.com/proxy.html?v=20130916001&callback=1&id=2'
 SmartQQUrl = 'http://w.qq.com/login.html'
 VFWebQQ = ''
 AdminQQ = '0'
-tulingkey='#YOUR KEY HERE#'
-nickname = u'#机器人的名字@用#'
+nickname = ''
+tulingkey = '909edf39a0d2f1339d07c4105202bfae'
 
 initTime = time.time()
 
 
-# logging.basicConfig(filename='log.log', level=logging.INFO,
+# 日志级别等级CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
+# logging.basicConfig(filename='log.log', level=logging.ERROR,
 #                     format='%(asctime)s  %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
 #                     datefmt='%a, %d %b %Y %H:%M:%S')
-
 
 # -----------------
 # 方法声明
@@ -74,7 +74,13 @@ def date_to_millis(d):
 
 # 查询QQ号，通常首次用时0.2s，以后基本不耗时
 def uin_to_account(tuin):
-    # 如果消息的发送者的真实QQ号码不在FriendList中,则自动去取得真实的QQ号码并保存到缓存中
+    """
+    uin转真实QQ号
+    如果消息的发送者的真实QQ号码不在FriendList中,则自动去取得真实的QQ号码并保存到缓存中
+    uin: int,临时号码
+    type: int, 1 好友uin转QQ，4 群uin转群号
+    @rtype: ink
+    """
     global FriendList
     if tuin not in FriendList:
         try:
@@ -136,17 +142,6 @@ def msg_handler(msgObj):
                 except Exception, e:
                     logging.info("error" + str(e))
 
-                    # print "{0}:{1}".format(self.FriendList.get(tuin, 0), txt)
-
-                    # if FriendList.get(tuin, 0) == AdminQQ:#如果消息的发送者与AdminQQ不相同, 则忽略本条消息不往下继续执行
-                    #     if txt[0] == '#':
-                    #         thread.start_new_thread(self.runCommand, (tuin, txt[1:].strip(), msgId))
-                    #         msgId += 1
-
-                    # if txt[0:4] == 'exit':
-                    #     logging.info(self.Get('http://d.web2.qq.com/channel/logout2?ids=&clientid={0}&psessionid={1}'.format(self.ClientID, self.PSessionID), Referer))
-                    #     exit(0)
-
         # 群消息
         if msgType == 'group_message':
             global GroupList, GroupWatchList
@@ -187,7 +182,6 @@ def combine_msg(content):
         elif len(part) > 1:
             # 如果是图片
             if str(part[0]) == "offpic" or str(part[0]) == "cface":
-                msgTXT += "[图片]"
                 return WebQQProtocol.MSG_PICTURE, content
     return WebQQProtocol.MSG_STRING, msgTXT
 
@@ -274,22 +268,22 @@ class Login(HttpClient):
     MaxTryTime = 5
 
     def __init__(self, vpath, qq=0):
-        global APPID, AdminQQ, PTWebQQ, VFWebQQ, PSessionID, msgId
+        global APPID, AdminQQ, PTWebQQ, VFWebQQ, PSessionID, msgId, nickname
         self.VPath = vpath  # QRCode保存路径
         AdminQQ = int(qq)
-        logging.critical(u"正在获取登陆页面")
+        logging.info(u"正在获取登陆页面")
         self.initUrl = getReValue(self.Get(SmartQQUrl), r'\.src = "(.+?)"', 'Get Login Url Error.', 1)
         html = self.Get(self.initUrl + '0')
 
-        logging.critical(u"正在获取appid")
+        logging.info(u"正在获取appid")
         APPID = getReValue(html, r'g_appid\s*=\s*encodeURIComponent\s*\("(\d+)"', 'Get AppId Error', 1)
-        logging.critical(u"正在获取login_sig")
+        logging.info(u"正在获取login_sig")
         sign = getReValue(html, r'g_login_sig\s*=\s*encodeURIComponent\s*\("(.+?)"\)', 'Get Login Sign Error', 0)
         logging.info('get sign : %s', sign)
-        logging.critical(u"正在获取pt_version")
+        logging.info(u"正在获取pt_version")
         JsVer = getReValue(html, r'g_pt_version\s*=\s*encodeURIComponent\s*\("(\d+)"\)', 'Get g_pt_version Error', 1)
         logging.info('get g_pt_version : %s', JsVer)
-        logging.critical(u"正在获取mibao_css")
+        logging.info(u"正在获取mibao_css")
         MiBaoCss = getReValue(html, r'g_mibao_css\s*=\s*encodeURIComponent\s*\("(.+?)"\)', 'Get g_mibao_css Error', 1)
         logging.info('get g_mibao_css : %s', sign)
         StarTime = date_to_millis(datetime.datetime.utcnow())
@@ -319,14 +313,14 @@ class Login(HttpClient):
         if ret[1] != '0':
             raise ValueError, "RetCode = " + ret['retcode']
             return
-        logging.critical(u"二维码已扫描，正在登陆")
+        logging.info(u"二维码已扫描，正在登陆")
         pass_time()
         # 删除QRCode文件
         if os.path.exists(self.VPath):
             os.remove(self.VPath)
 
         # 记录登陆账号的昵称
-        tmpUserName = ret[11]
+        nickname = ret[11]
 
         html = self.Get(ret[5])
         url = getReValue(html, r' src="(.+?)"', 'Get mibao_res Url Error.', 0)
@@ -351,7 +345,7 @@ class Login(HttpClient):
                 LoginError = 0
             except:
                 LoginError += 1
-                logging.critical(u"登录失败，正在重试")
+                logging.info(u"登录失败，正在重试")
 
         if ret['retcode'] != 0:
             raise ValueError, "Login Retcode=" + str(ret['retcode'])
@@ -360,9 +354,9 @@ class Login(HttpClient):
         VFWebQQ = ret['result']['vfwebqq']
         PSessionID = ret['result']['psessionid']
 
-        logging.critical(u"QQ号：{0} 登陆成功, 用户名：{1}".format(ret['result']['uin'], tmpUserName))
+        logging.info(u"QQ号：{0} 登陆成功, 用户名：{1}".format(ret['result']['uin'], nickname))
         logging.info('Login success')
-        logging.critical(u"登陆二维码用时" + pass_time() + "秒")
+        logging.info(u"登陆二维码用时" + pass_time() + "秒")
 
         msgId = int(random.uniform(20000, 50000))
 
@@ -429,7 +423,7 @@ class check_msg(threading.Thread):
                 E = 0
                 continue
 
-        logging.critical(u"轮询错误超过五次")
+        logging.info(u"轮询错误超过五次")
 
     # 向服务器查询新消息
     def check(self):
@@ -442,7 +436,7 @@ class check_msg(threading.Thread):
             ret = json.loads(html)
         except Exception as e:
             logging.error(str(e))
-            logging.critical("Check error occured, retrying.")
+            logging.info("Check error occured, retrying.")
             return self.check()
 
         return ret
@@ -595,7 +589,7 @@ class group_thread(threading.Thread):
                 #                 pass
                 if self.aboutme(content):
                     return
-                if self.deleteall(content):
+                if self.deleteall(send_uin, content):
                     return
                 if self.callout(send_uin, content):
                     return
@@ -625,11 +619,10 @@ class group_thread(threading.Thread):
     def repeat(self, msgInfo):
         msgType = msgInfo[0]
         content = msgInfo[1]
-        if self.last1 == str(content) and content != '' and content != ' ':
+        if self.last1 == str(content) and content.strip():
             self.reply(content)
             logging.info("已复读：{" + str(content) + "}")
         self.last1 = content
-
         return False
 
     def follow(self, send_uin, content):
@@ -712,11 +705,15 @@ class group_thread(threading.Thread):
             logging.error("ERROR" + str(e))
         return False
 
-    def deleteall(self, content):
+    def deleteall(self, send_uin, content):
         pattern = re.compile(r'^(?:!|！)(deleteall)')
         match = pattern.match(content)
         try:
             if match:
+                usr = str(uin_to_account(send_uin))
+                if str(usr) != str(AdminQQ):
+                    self.reply('你不是主人，我不听你的~~')
+                    return True
                 logging.info("Delete all learned data for group:" + str(self.gid))
                 info = "已删除所有学习内容"
                 self.replyList.clear()
@@ -734,7 +731,7 @@ class group_thread(threading.Thread):
 
 if __name__ == "__main__":
     vpath = './v.png'
-    qq = 0
+    qq = 75925949
     if len(sys.argv) > 1:
         vpath = sys.argv[1]
     if len(sys.argv) > 2:
@@ -744,7 +741,7 @@ if __name__ == "__main__":
         pass_time()
         qqLogin = Login(vpath, qq)
     except Exception, e:
-        logging.critical(str(e))
+        logging.info(str(e))
         os._exit(1)
     t_check = check_msg()
     t_check.setDaemon(True)
