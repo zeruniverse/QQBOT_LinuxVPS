@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import re
@@ -731,15 +732,15 @@ class group_thread(threading.Thread):
 
 if __name__ == "__main__":
     vpath = './v.png'
-    qq = 75925949
+    adminqq = 75925949
     if len(sys.argv) > 1:
         vpath = sys.argv[1]
     if len(sys.argv) > 2:
-        qq = sys.argv[2]
+        adminqq = sys.argv[2]
 
     try:
         pass_time()
-        qqLogin = Login(vpath, qq)
+        qqLogin = Login(vpath, adminqq)
     except Exception, e:
         logging.info(str(e))
         os._exit(1)
