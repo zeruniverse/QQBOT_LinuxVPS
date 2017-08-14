@@ -33,7 +33,7 @@ SmartQQUrl = 'https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&styl
 VFWebQQ = ''
 AdminQQ = '0'
 MyUIN = ''
-tulingkey='#YOUR KEY HERE#'
+tulingkey='22a2b8d63b924458ad7c4d611bbcabcc'
 tmpUserName = ''
 
 initTime = time.time()
